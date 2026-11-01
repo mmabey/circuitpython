@@ -537,7 +537,7 @@ void common_hal_bitmaptools_draw_polygon(displayio_bitmap_t *destination, void *
         draw_line(destination, xprev, yprev, x0, y0, value);
     }
 
-    displayio_area_t area = { xmin, ymin, xmax, ymax, NULL };
+    displayio_area_t area = { xmin, ymin, xmax + 1, ymax + 1, NULL };
     displayio_area_t bitmap_area = { 0, 0, destination->width, destination->height, NULL };
     displayio_area_compute_overlap(&area, &bitmap_area, &area);
     displayio_bitmap_set_dirty_area(destination, &area);
