@@ -197,7 +197,13 @@ size_t common_hal_terminalio_terminal_write(terminalio_terminal_obj_t *self, con
         return color_value;
     }
 
-    displayio_palette_t *terminal_palette = self->scroll_area->pixel_shader;
+    // Color attributes are stored in entries 0 and 1 of a Palette. Other shaders have no such
+    // entries, so the attributes are ignored for them.
+    displayio_palette_t *terminal_palette = NULL;
+    if (mp_obj_is_type(self->scroll_area->pixel_shader, &displayio_palette_type) &&
+        common_hal_displayio_palette_get_len(self->scroll_area->pixel_shader) >= 2) {
+        terminal_palette = self->scroll_area->pixel_shader;
+    }
     #endif
 
     const byte *i = data;
@@ -346,7 +352,7 @@ size_t common_hal_terminalio_terminal_write(terminalio_terminal_obj_t *self, con
                             self->cursor_y = vt_args[0];
                             start_y = self->cursor_y;
                         #if CIRCUITPY_TERMINALIO_VT100
-                        } else if (c == 'm') {
+                        } else if (c == 'm' && terminal_palette != NULL) {
                             for (uint8_t i_args = 0; i_args < n_args; i_args++) {
                                 if ((vt_args[i_args] >= 40 && vt_args[i_args] <= 47) || (vt_args[i_args] >= 30 && vt_args[i_args] <= 37)) {
                                     common_hal_displayio_palette_set_color(terminal_palette, 1 - (vt_args[i_args] / 40), _select_color(vt_args[i_args] % 10));
