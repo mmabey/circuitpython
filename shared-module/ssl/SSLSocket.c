@@ -6,6 +6,13 @@
 //
 // SPDX-License-Identifier: MIT
 
+// Needed to reach mbedtls_pk_context's private pub_raw/pub_raw_len fields --
+// see the mbedtls_pk_wrap_psa() workaround in
+// common_hal_ssl_sslcontext_wrap_socket() below.
+#define MBEDTLS_ALLOW_PRIVATE_ACCESS
+
+#include <string.h>
+
 #include "shared-bindings/ssl/SSLSocket.h"
 #include "shared-bindings/ssl/SSLContext.h"
 
@@ -360,18 +367,35 @@ ssl_sslsocket_obj_t *common_hal_ssl_sslcontext_wrap_socket(ssl_sslcontext_obj_t 
     mbedtls_ssl_set_bio(&o->ssl, o, _mbedtls_ssl_send, _mbedtls_ssl_recv, NULL);
 
     if (self->cert_buf.buf != NULL) {
+        // Parsed first so its public key is available for the
+        // mbedtls_pk_wrap_psa() workaround below.
+        ret = mbedtls_x509_crt_parse(&o->cert, self->cert_buf.buf, self->cert_buf.len + 1);
+        if (ret != 0) {
+            goto cleanup;
+        }
+
         if (self->hw_key_id != 0) {
-            // The private key lives in hardware (e.g. hardwarekey.HardwareKey
-            // backed by the Digital Signature peripheral). Wrap the opaque PSA
-            // key; the handshake signature is computed by the hardware.
+            // mbedtls_pk_wrap_psa() unconditionally calls
+            // psa_export_public_key() on the handle as part of wrapping it,
+            // but the DS peripheral's PSA driver has no export_public_key
+            // entry point (the private key, and anything derivable from it,
+            // never leaves the peripheral by design), so that call fails
+            // before the wrap can complete. It skips the export once
+            // pub_raw_len is already set, so pre-populate it from the
+            // certificate's own public key -- the public half of this same
+            // key, by construction.
+            unsigned char pub_raw[MBEDTLS_PK_MAX_PUBKEY_RAW_LEN];
+            size_t pub_raw_len;
+            ret = mbedtls_pk_write_pubkey_psa(&o->cert.pk, pub_raw, sizeof(pub_raw), &pub_raw_len);
+            if (ret != 0) {
+                goto cleanup;
+            }
+            memcpy(o->pkey.pub_raw, pub_raw, pub_raw_len);
+            o->pkey.pub_raw_len = pub_raw_len;
             ret = mbedtls_pk_wrap_psa(&o->pkey, self->hw_key_id);
         } else {
             ret = mbedtls_pk_parse_key(&o->pkey, self->key_buf.buf, self->key_buf.len + 1, NULL, 0);
         }
-        if (ret != 0) {
-            goto cleanup;
-        }
-        ret = mbedtls_x509_crt_parse(&o->cert, self->cert_buf.buf, self->cert_buf.len + 1);
         if (ret != 0) {
             goto cleanup;
         }
