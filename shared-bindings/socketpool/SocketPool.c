@@ -19,7 +19,7 @@
 //| class SocketPool:
 //|     """A pool of socket resources available for the given network interface. More than one
 //|     SocketPool can be created for a network interface. The sockets of every SocketPool
-//|     count toward the same limit on open sockets.
+//|     count toward the same limit on open sockets for the given network interface.
 //|
 //|     SocketPool should be used in place of CPython's socket which provides
 //|     a pool of sockets provided by the underlying OS.
