@@ -27,7 +27,7 @@
 //|
 //|     This initializes a display and connects it into CircuitPython. Unlike other
 //|     objects in CircuitPython, a FramebufferDisplay stays active after your code finishes if it is
-//|     `supervisor.runtime.display`, so that CircuitPython can use it. Otherwise, it is released
+//|     `supervisor.runtime.display <supervisor.Runtime.display>`, so that CircuitPython can use it. Otherwise, it is released
 //|     when your code finishes."""
 //|
 //|     def __init__(

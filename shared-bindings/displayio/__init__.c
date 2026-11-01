@@ -77,7 +77,7 @@
 //|     release the builtin display on boards that have one. You will need to reinitialize it yourself
 //|     afterwards. This may take seconds to complete if an active EPaperDisplay is refreshing.
 //|
-//|     Displays that are not `supervisor.runtime.display` are released automatically when your code
+//|     Displays that are not `supervisor.runtime.display <supervisor.Runtime.display>` are released automatically when your code
 //|     finishes. Use this before initializing a display if one may still be active, such as a builtin
 //|     display or a display from an earlier run.
 //|
