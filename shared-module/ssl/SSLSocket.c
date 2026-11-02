@@ -383,15 +383,11 @@ ssl_sslsocket_obj_t *common_hal_ssl_sslcontext_wrap_socket(ssl_sslcontext_obj_t 
             // before the wrap can complete. It skips the export once
             // pub_raw_len is already set, so pre-populate it from the
             // certificate's own public key -- the public half of this same
-            // key, by construction.
-            unsigned char pub_raw[MBEDTLS_PK_MAX_PUBKEY_RAW_LEN];
-            size_t pub_raw_len;
-            ret = mbedtls_pk_write_pubkey_psa(&o->cert.pk, pub_raw, sizeof(pub_raw), &pub_raw_len);
-            if (ret != 0) {
-                goto cleanup;
-            }
-            memcpy(o->pkey.pub_raw, pub_raw, pub_raw_len);
-            o->pkey.pub_raw_len = pub_raw_len;
+            // key, by construction. (mbedtls_pk_write_pubkey_psa() would do
+            // this copy too, but it needs MBEDTLS_PK_WRITE_C, which not every
+            // port enables, so copy the field directly instead.)
+            memcpy(o->pkey.pub_raw, o->cert.pk.pub_raw, o->cert.pk.pub_raw_len);
+            o->pkey.pub_raw_len = o->cert.pk.pub_raw_len;
             ret = mbedtls_pk_wrap_psa(&o->pkey, self->hw_key_id);
         } else {
             ret = mbedtls_pk_parse_key(&o->pkey, self->key_buf.buf, self->key_buf.len + 1, NULL, 0);
